@@ -19,19 +19,19 @@ def customizedCNN(scaled_images, **kwargs):
     layer_1 = activ(conv(scaled_images, 'c1', n_filters=8, filter_size=6, stride=3, init_scale=np.sqrt(2), **kwargs))
     layer_2 = activ(conv(layer_1, 'c2', n_filters=8, filter_size=3, stride=2, init_scale=np.sqrt(2), **kwargs))
     layer_3 = activ(conv(layer_2, 'c3', n_filters=8, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
-    layer_3 = conv_to_fc(layer_3)
-    layer_4 = activ(linear(layer_3, 'fc1', n_hidden=256, init_scale=np.sqrt(2)))
-    layer_5 = activ(linear(layer_4, 'fc2', n_hidden=128, init_scale=np.sqrt(2)))
+    layer_4 = conv_to_fc(layer_3)
+    layer_5 = activ(linear(layer_4, 'fc1', n_hidden=256, init_scale=np.sqrt(2)))
+    layer_6 = activ(linear(layer_5, 'fc2', n_hidden=128, init_scale=np.sqrt(2)))
 
     active = tf.tanh
-    pi = active(linear(layer_5, "pi_fc{}".format(1), 64, init_scale=np.sqrt(2)))
+    pi = active(linear(layer_6, "pi_fc{}".format(1), 64, init_scale=np.sqrt(2)))
     # pi = active(linear(pi, "pi_fc{}".format(2), 128, init_scale=np.sqrt(2)))
-    vf = active(linear(layer_5, "vf_fc{}".format(1), 64, init_scale=np.sqrt(2)))
+    vf = active(linear(layer_6, "vf_fc{}".format(1), 64, init_scale=np.sqrt(2)))
     # vf = active(linear(vf, "vf_fc{}".format(2), 128, init_scale=np.sqrt(2)))
     return pi, vf
 
 
-def simpleCNN(scaled_images, **kwargs):
+def SACCNN(scaled_images, **kwargs):
     """
     CNN from Nature paper.
 
@@ -43,12 +43,33 @@ def simpleCNN(scaled_images, **kwargs):
     layer_1 = activ(conv(scaled_images, 'c1', n_filters=8, filter_size=6, stride=3, init_scale=np.sqrt(2), **kwargs))
     layer_2 = activ(conv(layer_1, 'c2', n_filters=8, filter_size=3, stride=2, init_scale=np.sqrt(2), **kwargs))
     layer_3 = activ(conv(layer_2, 'c3', n_filters=8, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
-    layer_3 = conv_to_fc(layer_3)
-    layer_4 = activ(linear(layer_3, 'fc1', n_hidden=256, init_scale=np.sqrt(2)))
-    layer_5 = activ(linear(layer_4, 'fc2', n_hidden=128, init_scale=np.sqrt(2)))
+    layer_4 = conv_to_fc(layer_3)
+    layer_5 = activ(linear(layer_4, 'fc1', n_hidden=256, init_scale=np.sqrt(2)))
+    layer_6 = activ(linear(layer_5, 'fc2', n_hidden=128, init_scale=np.sqrt(2)))
 
     active = tf.tanh
-    pi = active(linear(layer_5, "pi_fc{}".format(1), 64, init_scale=np.sqrt(2)))
+    pi = active(linear(layer_6, "pi_fc{}".format(1), 64, init_scale=np.sqrt(2)))
+    # pi = active(linear(pi, "pi_fc{}".format(2), 128, init_scale=np.sqrt(2)))
+    return pi
+
+def simpleCNN(scaled_images, **kwargs):
+    """
+    CNN from Nature paper.
+
+    :param scaled_images: (TensorFlow Tensor) Image input placeholder
+    :param kwargs: (dict) Extra keywords parameters for the convolutional layers of the CNN
+    :return: (TensorFlow Tensor) The CNN output layer
+    """
+    activ = tf.nn.relu
+    layer_1 = activ(conv(scaled_images, 'c1', n_filters=32, filter_size=8, stride=3, init_scale=np.sqrt(2), **kwargs))
+    layer_2 = activ(conv(layer_1, 'c2', n_filters=64, filter_size=5, stride=3, init_scale=np.sqrt(2), **kwargs))
+    layer_3 = activ(conv(layer_2, 'c3', n_filters=128, filter_size=3, stride=2, init_scale=np.sqrt(2), **kwargs))
+    layer_4 = conv_to_fc(layer_3)
+    layer_5 = activ(linear(layer_4, 'fc1', n_hidden=256, init_scale=np.sqrt(2)))
+    layer_6 = activ(linear(layer_5, 'fc2', n_hidden=128, init_scale=np.sqrt(2)))
+
+    active = tf.tanh
+    pi = active(linear(layer_6, "pi_fc{}".format(1), 64, init_scale=np.sqrt(2)))
     # pi = active(linear(pi, "pi_fc{}".format(2), 128, init_scale=np.sqrt(2)))
     return pi
 

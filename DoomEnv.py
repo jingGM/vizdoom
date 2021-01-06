@@ -70,14 +70,14 @@ class DoomEnv(gym.Env):
         else:
             self.sleep_time = .01 / vzd.DEFAULT_TICRATE  # = 0.0028
 
-        self.resolution = (30, 45)
+        self.resolution = (60, 90)
         self.feature = feature
         if self.feature == "cnn":
             self.observation_space = spaces.Box(low=0, high=255,  # dtype=np.uint8,
-                                                shape=(self.resolution[0], self.resolution[1], 1))
+                                                shape=(self.resolution[0], self.resolution[1], 4))
         else:
             self.observation_space = spaces.Box(low=0, high=255,  # dtype=np.uint8,
-                                                shape=(self.resolution[0] * self.resolution[1] * 1,))
+                                                shape=(self.resolution[0] * self.resolution[1] * 4,))
         # self.action_space = spaces.Discrete(len(self.actions))
 
         self.learning_type = learning_type
@@ -90,6 +90,7 @@ class DoomEnv(gym.Env):
 
         self.last_state = None
         self.last2n_state = None
+        self.last3r_state = None
 
     def _initialize_game(self, config_file_path):
         game = vzd.DoomGame()
@@ -104,6 +105,10 @@ class DoomEnv(gym.Env):
 
     def reset(self):
         self.game.new_episode()
+        self.last_state = None
+        self.last2n_state = None
+        self.last3r_state = None
+
         state, done, info = self._get_observation()
 
         self.reward = Rewards(self.game)
@@ -147,20 +152,24 @@ class DoomEnv(gym.Env):
             if self.last_state is None:
                 self.last_state = copy.deepcopy(obs)
                 self.last2n_state = copy.deepcopy(obs)
+                self.last3r_state = copy.deepcopy(obs)
 
         if obs is None:
-            # observation = np.concatenate((self.last_state, self.last_state, self.last2n_state), axis=2)
-            observation = self.last_state
+            observation = np.concatenate((self.last_state, self.last_state, self.last2n_state, self.last3r_state), axis=2)
+            # observation = self.last_state
         else:
-            observation = obs
-            # observation = np.concatenate((obs, self.last_state, self.last2n_state), axis=2)
-            # self.last2n_state = copy.deepcopy(self.last_state)
-            # self.last_state = copy.deepcopy(obs)
+            # observation = obs
+            observation = np.concatenate((obs, self.last_state, self.last2n_state, self.last3r_state), axis=2)
+            self.last3r_state = copy.deepcopy(self.last2n_state)
+            self.last2n_state = copy.deepcopy(self.last_state)
+            self.last_state = copy.deepcopy(obs)
 
         if self.feature == "cnn":
             pass
         else:
             observation = np.asarray(observation).flatten()
+
+        self.last_state = copy.deepcopy(obs)
         return observation, done, {"total_reward": self.game.get_total_reward()}
 
     def step(self, action, wait=False):

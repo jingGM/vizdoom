@@ -12,6 +12,13 @@ from policy import PPOPolicy, SACPolicy
 from stable_baselines.common import make_vec_env
 from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 
+import argparse
+
+parser = argparse.ArgumentParser(description="vizdoom")
+parser.add_argument("-alg", type=str, default="sac", help="algorithm for training")
+parser.add_argument("-env", type=int, default=0, help="which stage it is")
+args = parser.parse_args()
+
 
 class PPOTrain:
     def __init__(self, env_index: int = 0, max_time_step_per_robot=1000, model_path="./cnn", feature_extractor="cnn"):
@@ -26,10 +33,9 @@ class PPOTrain:
                           noptepochs=100, cliprange=0.2, cliprange_vf=None, verbose=0, tensorboard_log="./tensorboard",
                           _init_setup_model=True, full_tensorboard_log=True, seed=None, n_cpu_tf_sess=None)
 
-        self.model_path = model_path + feature_extractor + "_" + ENVS[env_index] + "_ppo.zip"
-        load_path = model_path + feature_extractor + "_" + ENVS[env_index - 1] + "_ppo.zip"
-        if path.exists(load_path):
-            self.model.load(load_path, env=self.env)
+        self.model_path = model_path
+        if path.exists(self.model_path):
+            self.model.load(self.model_path, env=self.env)
 
     def train(self, total_time_step=50000):
         path = self.model_path
@@ -46,10 +52,10 @@ class SACTrain:
     def __init__(self, env_index: int = 0, model_path="./", feature_extractor="cnn"):
         self.env = DoomEnv(display=False, feature=feature_extractor, env_index=env_index, learning_type="sac")
         self.model = SAC(SACPolicy, self.env, verbose=1, gamma=0.99, learning_rate=3e-4, buffer_size=50000,
-                         learning_starts=100, train_freq=1, batch_size=128,
+                         learning_starts=100, train_freq=1, batch_size=256,
                          tau=0.005, ent_coef='auto', target_update_interval=1,
-                         gradient_steps=1, target_entropy='auto', action_noise=NormalActionNoise(0, 0.5),
-                         random_exploration=0.0, tensorboard_log="./tensorboard",
+                         gradient_steps=1, target_entropy='auto', action_noise=None,
+                         random_exploration=1, tensorboard_log="./tensorboard",
                          _init_setup_model=True, policy_kwargs=None, full_tensorboard_log=False,
                          seed=None, n_cpu_tf_sess=None)
 
@@ -71,36 +77,15 @@ class SACTrain:
         return action
 
 
-class HERTrain:
-    def __init__(self, env_index: int = 1, model_path="./", feature_extractor="cnn"):
-        self.env = DoomEnv(display=False, feature=feature_extractor, env_index=env_index, learning_type="ppo")
-        self.model = HER(SACPolicy, self.env, model_class=SAC, n_sampled_goal=4,
-                         goal_selection_strategy=GoalSelectionStrategy.FUTURE,
-                         kwargs={"buffer_size": 5000, "action_noise": NormalActionNoise(0, 0.5)})
-
-        self.model_path = model_path
-
-    def train(self, total_time_step=10000, saving_path="./cnn"):
-        self.model.learn(total_timesteps=total_time_step, log_interval=10)
-        self.model.save(saving_path)
-
-    def load(self, loading_path=None):
-        if loading_path is None:
-            loading_path = self.model_path
-        self.model = SAC.load(loading_path)
-
-    def predict(self, obs):
-        action, _states = self.model.predict(obs)
-        return action
-
-
 if __name__ == "__main__":
-    # train = PPOTrain(0, feature_extractor="cnn", model_path="./model/")
-    # train.train(int(10e7))
-
-    path_2 = "./" + "cnn_" + ENVS[1] + "_sac_2.zip"
-    train = SACTrain(1, feature_extractor="cnn", model_path=path_2)
-    train.train(int(10e5), path_2)
+    if args.alg == "ppo":
+        savepath = "./" + "cnn_" + ENVS[args.env] + "_ppo.zip"
+        train = PPOTrain(args.env, feature_extractor="cnn", model_path=savepath)
+        train.train(int(10e7))
+    elif args.alg == "sac":
+        savepath = "./" + "cnn_" + ENVS[args.env] + "_sac.zip"
+        train = SACTrain(args.env, feature_extractor="cnn", model_path=savepath)
+        train.train(int(10e7), savepath)
 
     # path_3 = "./" + "cnn_" + ENVS[1] + "_her.zip"
     # train = HERTrain(1, feature_extractor="cnn", model_path=path_3)
