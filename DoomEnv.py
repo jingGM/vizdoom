@@ -70,7 +70,7 @@ class DoomEnv(gym.Env):
         else:
             self.sleep_time = .01 / vzd.DEFAULT_TICRATE  # = 0.0028
 
-        self.resolution = (60, 90)
+        self.resolution = (80, 120)
         self.feature = feature
         if self.feature == "cnn":
             self.observation_space = spaces.Box(low=0, high=255,  # dtype=np.uint8,
@@ -118,6 +118,9 @@ class DoomEnv(gym.Env):
         pass
 
     def preprocess(self, img):
+        shape = np.asarray(img)
+        img = img[150:350, 100:500]
+        # saveim(img)
         img = skimage.transform.resize(img, self.resolution)
         img = img.astype(np.float32)
         img = np.expand_dims(img, axis=2)
@@ -148,14 +151,14 @@ class DoomEnv(gym.Env):
             # img = im.fromarray(automap_buf, 'RGB')
             # img.show("test")
             obs = self.preprocess(screen_buf)
-
             if self.last_state is None:
                 self.last_state = copy.deepcopy(obs)
                 self.last2n_state = copy.deepcopy(obs)
                 self.last3r_state = copy.deepcopy(obs)
 
         if obs is None:
-            observation = np.concatenate((self.last_state, self.last_state, self.last2n_state, self.last3r_state), axis=2)
+            observation = np.concatenate((self.last_state, self.last_state, self.last2n_state, self.last3r_state),
+                                         axis=2)
             # observation = self.last_state
         else:
             # observation = obs
@@ -195,7 +198,7 @@ class DoomEnv(gym.Env):
             print(info_reward)
 
         state, done, info = self._get_observation()
-
+        # test_state(state)
         return state, r, done, info
 
     def debug_run(self, total_time=1e10):
@@ -209,16 +212,33 @@ class DoomEnv(gym.Env):
         self.game.close()
 
 
+import scipy.misc
+def test_state(state):
+    im0 = state[:, :, 0]
+    im1 = state[:, :, 1]
+    im2 = state[:, :, 2]
+    im3 = state[:, :, 3]
+
+    scipy.misc.imsave("./im0.jpg", np.asarray(im0))
+    scipy.misc.imsave("./im1.jpg", np.asarray(im1))
+    scipy.misc.imsave("./im2.jpg", np.asarray(im2))
+    scipy.misc.imsave("./im3.jpg", np.asarray(im3))
+
+
+def saveim(im):
+    scipy.misc.imsave("./test.jpg", np.asarray(im))
+
+
 if __name__ == "__main__":
     config_dir = "./scenarios/basic.cfg"
-    # doom = DoomEnv(env_index=1, display=True, debug=True, learning_type="no")
     doom = DoomEnv(env_index=1, display=True, debug=False, learning_type="no")
-    # doom.reset()
+    doom.reset()
     # doom = SimpleDoomEnv(config_dir=config_dir)
-    # done = False
-    # while not done:
-    #     doom.step(0)
-    doom.debug_run(1e10)
+    done = False
+    while not done:
+        doom.step(0)
+    # doom = DoomEnv(env_index=1, display=True, debug=True, learning_type="no")
+    # doom.debug_run(1e10)
 
 # class SimpleDoomEnv(gym.Env):
 #     def __init__(self,
